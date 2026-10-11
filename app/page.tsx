@@ -1,69 +1,351 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Montserrat } from "next/font/google";
+import { Tangerine } from "next/font/google";
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+});
+
+const tangerine = Tangerine({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal"],
+});
 
 export default function Home() {
+  const [leerMas, setLeerMas] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pathname = usePathname();
+
+  // Reproducir o pausar con un clic
+  const toggleMusic = () => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+    }
+
+    clickTimer.current = setTimeout(async () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (audio.paused) {
+        try {
+          await audio.play();
+          setIsPlaying(true);
+        } catch (error) {
+          console.error("No se pudo reproducir la música:", error);
+          setIsPlaying(false);
+        }
+      } else {
+        audio.pause();
+        setIsPlaying(false);
+      }
+
+      clickTimer.current = null;
+    }, 250);
+  };
+
+  // Reiniciar la canción con doble clic
+  const restartMusic = async () => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.currentTime = 0;
+
+    try {
+      await audio.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error("No se pudo reiniciar la música:", error);
+      setIsPlaying(false);
+    }
+  };
+
+  // Detener la música al cambiar de página o salir de esta página
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    return () => {
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
+        clickTimer.current = null;
+      }
+
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [pathname]);
+
+  // Detener la música inmediatamente al pulsar una tarjeta
+  const stopMusic = () => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+
+    const audio = audioRef.current;
+
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    setIsPlaying(false);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen overflow-x-hidden bg-[#070707] text-white">
+      {/* NAVBAR */}
+      <nav className="fixed top-0 z-50 flex h-16 w-full items-center bg-gradient-to-b from-black/90 to-transparent px-4 sm:px-6 md:px-12">
+        {/* Logo Netflix */}
+        <div className="flex shrink-0 items-center">
+          <img
+            src="/Netflix_Logo_PMS.png"
+            alt="Netflix"
+            className="h-16 w-auto sm:h-20"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        {/* Menú */}
+        <div className="ml-6 hidden items-center gap-5 text-sm text-gray-300 md:ml-10 md:flex md:gap-6">
+          <Link href="/" onClick={stopMusic} className="cursor-pointer text-white">
+            Inicio
+          </Link>
+
+          <span className="cursor-pointer hover:text-white">
+            Nuestra historia
+          </span>
+
+          <span className="cursor-pointer hover:text-white">
+            Momentos
+          </span>
+
+          <span className="cursor-pointer hover:text-white">
+            Mi lista
+          </span>
+        </div>
+
+        {/* Iconos */}
+        <div className="ml-auto flex items-center gap-3 sm:gap-5">
+          <span className="cursor-pointer text-lg sm:text-xl">🔍</span>
+          <span className="cursor-pointer text-lg sm:text-xl">🖤</span>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section className="relative flex min-h-[800px] items-center overflow-hidden sm:min-h-[750px] lg:min-h-[700px]">
+        {/* Imagen principal */}
+        <div className="absolute inset-0">
+          <img
+            src="/imagen1.jpeg"
+            alt="Nuestra historia"
+            className="h-full w-full scale-110 translate-x-[25%] translate-y-[-25%] object-cover md:translate-y-0"
+          />
+
+          {/* Degradado oscuro desde la izquierda */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-transparent" />
+
+          {/* Degradado inferior */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-black/40 to-transparent" />
+        </div>
+
+        {/* Contenido principal */}
+        <div className="relative z-10 w-full max-w-4xl px-6 pt-24 sm:px-8 md:px-16 lg:max-w-5xl">
+          {/* SERIE */}
+          <div className="mb-4 flex items-center gap-3">
+            <img
+              src="/Netflix_Symbol_PMS.png"
+              alt="Netflix"
+              className="h-12 w-auto sm:h-15"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+            <p className="text-xs font-semibold uppercase tracking-[0.55em] text-white sm:text-sm sm:tracking-[0.90em]">
+              SERIE
+            </p>
+          </div>
+
+          {/* TÍTULO */}
+          <h1
+            className={`${tangerine.className} text-5xl font-extrabold uppercase leading-[0.9] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl`}
           >
-            Documentation
-          </a>
+            NUESTRO
+            <br />
+            PRIMER AÑO
+          </h1>
+
+          {/* 100% + 4K */}
+          <div className="mt-5 flex flex-wrap items-center gap-3 sm:gap-4">
+            <span className="text-base font-bold text-green-500 sm:text-lg">
+              100 % Para ti
+            </span>
+
+            <img
+              src="/img-4k.png"
+              alt="4K"
+              className="h-6 w-auto object-contain sm:h-7"
+            />
+          </div>
+
+          {/* TOP 10 + RECUERDOS */}
+          <div className="mt-5 flex flex-wrap items-center gap-3 sm:gap-4">
+            <img
+              src="/top-10.png"
+              alt="Top 10"
+              className="h-8 w-auto object-contain sm:h-9"
+            />
+
+            <p className="mb-0.5 text-base font-bold text-white sm:text-lg">
+              1 año • 365 días • Infinitos recuerdos.
+            </p>
+          </div>
+
+          {/* DESCRIPCIÓN */}
+          <p className="mt-5 w-full max-w-[850px] text-base leading-7 text-gray-300 sm:text-lg">
+            De todas las personas que pude conocer, la vida me llevó a ti. Y
+            desde entonces todo tiene más sentido. No hay día que no agradezca
+            a la vida por haberte encontrado. Por tu forma de mirar, de reír y
+            de hacer que todo sea posible.
+
+            {/* Texto adicional */}
+            <span className={`${leerMas ? "inline" : "hidden"} md:inline`}>
+              {" "}Eres mi pensamiento constante, mi razón para sonreír y el
+              motivo por el que cada día quiero ser mejor. Este detalle es solo
+              un pequeño recordatorio de lo mucho que te amo y lo agradecida
+              que estoy por tenerte en mi vida. Que valoro cada momento que
+              compartimos y que espero con ansias todos los que aún nos esperan.
+              <br />
+              Con todo mi cariño, feliz aniversario mi amor 🖤.
+            </span>
+
+            {/* Botón Leer más para móvil */}
+            <button
+              onClick={() => setLeerMas(!leerMas)}
+              className="ml-2 font-semibold text-white underline md:hidden"
+            >
+              {leerMas ? "Leer menos" : "Leer más"}
+            </button>
+          </p>
+
+          {/* BOTONES */}
+          <div className="mt-8 flex flex-wrap gap-3">
+            <audio
+              ref={audioRef}
+              src="/photo.mp3"
+              preload="auto"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+            />
+
+            <button
+              onClick={toggleMusic}
+              onDoubleClick={restartMusic}
+              className="rounded bg-white px-5 py-3 font-bold text-black transition hover:bg-gray-200 sm:px-6"
+            >
+              {isPlaying ? "⏸ Pausar música" : "▶ Reproducir música"}
+            </button>
+
+            <button className="rounded bg-gray-600/80 px-5 py-3 font-semibold text-white transition hover:bg-gray-600 sm:px-6">
+              ✓ Favorito
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* TENDENCIAS / MOMENTOS */}
+      <section className="relative z-20 px-6 pb-16 pt-8 sm:px-8 md:px-12">
+        <h2 className="mb-5 text-2xl font-bold sm:text-3xl">
+          Tendencias
+        </h2>
+
+        {/* Tarjetas */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {[
+            {
+              titulo: "Nuestro comienzo",
+              imagen: "/imagen11.jpeg",
+              link: "/nuestro-comienzo",
+            },
+            {
+              titulo: "Contigo todo es posible",
+              imagen: "/imagen2.jpeg",
+              link: "/contigo-todo-es-posible",
+            },
+            {
+              titulo: "Sara & Antonio",
+              imagen: "/imagen5.jpeg",
+              link: "/sara-y-antonio",
+            },
+            {
+              titulo: "Caminando juntos",
+              imagen: "/imagen3.jpeg",
+              link: "/caminando-juntos",
+            },
+            {
+              titulo: "Mi lugar seguro siempre seras tú",
+              imagen: "/imagen9.jpeg",
+              link: "/mi-lugar-favorito",
+            },
+            {
+              titulo: "Feliz aniversario #01",
+              imagen: "/imagen13.jpeg",
+              link: "/feliz-aniversario",
+            },
+          ].map((tendencia) => (
+            <Link
+              key={tendencia.titulo}
+              href={tendencia.link}
+              onClick={stopMusic}
+              className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-md bg-gray-800 transition duration-300 hover:-translate-y-2 hover:scale-105"
+            >
+              {/* FOTO */}
+              <img
+                src={tendencia.imagen}
+                alt={tendencia.titulo}
+                className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-110"
+              />
+
+              {/* TÍTULO */}
+              <div className="relative flex h-full items-end p-4">
+                <h3 className="font-bold text-white">
+                  {tendencia.titulo}
+                </h3>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* FINAL */}
+      <section className="border-t border-white/10 px-6 py-20 text-center sm:py-24">
+        <p className="text-xs uppercase tracking-[0.3em] text-gray-500 sm:text-sm">
+          Temporada 1
+        </p>
+
+        <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+          Y esto apenas comienza... 🖤
+        </h2>
+
+        <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-gray-400 sm:text-base">
+          Gracias por compartir este año conmigo. Espero que nuestra historia
+          tenga muchísimas temporadas más.
+        </p>
+      </section>
+    </main>
   );
 }
